@@ -95,29 +95,32 @@ export function TemplateResponseList({ initialData }: TemplateResponseListProps)
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-6 flex justify-end">
         <button
           onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-500/30 hover:shadow-xl hover:shadow-green-500/40 transition-all duration-200 font-medium"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-5 w-5" />
           テンプレートを追加
         </button>
       </div>
 
       {sortedTemplates.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>テンプレート応答がまだ登録されていません</p>
-          <p className="text-sm mt-2">「テンプレートを追加」ボタンから登録してください</p>
+        <div className="text-center py-16 px-4">
+          <div className="inline-block p-4 bg-green-100 rounded-full mb-4">
+            <span className="text-5xl">⚡</span>
+          </div>
+          <p className="text-lg font-medium text-gray-700 mb-2">テンプレート応答がまだ登録されていません</p>
+          <p className="text-sm text-gray-500">「テンプレートを追加」ボタンから登録してください</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {sortedTemplates.map((template) => (
             <div
               key={template.id}
               className={cn(
-                'bg-white border rounded-lg p-4',
-                !template.is_active && 'opacity-60 bg-gray-50'
+                'bg-white border border-gray-200/50 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200',
+                !template.is_active && 'opacity-60 bg-gray-50/50'
               )}
             >
               <div className="flex items-start justify-between">
@@ -180,31 +183,31 @@ export function TemplateResponseList({ initialData }: TemplateResponseListProps)
                   </div>
                 </div>
 
-                <div className="flex gap-1 ml-4">
+                <div className="flex gap-2 ml-4">
                   <button
                     onClick={() => handleToggleStatus(template.id, template.is_active)}
-                    className="p-2 hover:bg-gray-100 rounded transition-colors"
+                    className="p-2.5 hover:bg-gray-100 rounded-lg transition-all duration-200 hover:scale-110"
                     title={template.is_active ? '無効化' : '有効化'}
                   >
                     {template.is_active ? (
-                      <Eye className="h-4 w-4 text-green-600" />
+                      <Eye className="h-5 w-5 text-green-600" />
                     ) : (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
+                      <EyeOff className="h-5 w-5 text-gray-400" />
                     )}
                   </button>
                   <button
                     onClick={() => handleEdit(template)}
-                    className="p-2 hover:bg-gray-100 rounded transition-colors"
+                    className="p-2.5 hover:bg-green-50 rounded-lg transition-all duration-200 hover:scale-110"
                     title="編集"
                   >
-                    <Pencil className="h-4 w-4 text-gray-600" />
+                    <Pencil className="h-5 w-5 text-green-600" />
                   </button>
                   <button
                     onClick={() => handleDelete(template.id)}
-                    className="p-2 hover:bg-red-50 rounded transition-colors"
+                    className="p-2.5 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-110"
                     title="削除"
                   >
-                    <Trash2 className="h-4 w-4 text-red-600" />
+                    <Trash2 className="h-5 w-5 text-red-600" />
                   </button>
                 </div>
               </div>

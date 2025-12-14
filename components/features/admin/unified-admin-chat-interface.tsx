@@ -124,24 +124,29 @@ export function UnifiedAdminChatInterface({
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      {/* タブヘッダー */}
-      <div className="bg-white border-b">
-        <div className="flex items-center justify-between px-4">
-          <div className="flex gap-1">
+    <div className="flex flex-col h-screen">
+      {/* Modern Tab Header */}
+      <div className="bg-white border-b border-gray-200/50 shadow-sm">
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex gap-2">
             <button
               onClick={() => handleTabChange('direct')}
               className={cn(
-                'flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2',
+                'flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg transition-all duration-200',
                 currentTab === 'direct'
-                  ? 'text-orange-600 border-orange-600'
-                  : 'text-gray-600 border-transparent hover:text-gray-900'
+                  ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow-lg shadow-orange-500/30'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               )}
             >
               <MessageCircle className="h-4 w-4" />
               1対1チャット
               {initialRooms.length > 0 && (
-                <span className="ml-1 px-2 py-0.5 text-xs bg-gray-100 rounded-full">
+                <span className={cn(
+                  "ml-1 px-2 py-0.5 text-xs rounded-full font-semibold",
+                  currentTab === 'direct'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-gray-200 text-gray-700'
+                )}>
                   {initialRooms.length}
                 </span>
               )}
@@ -149,16 +154,21 @@ export function UnifiedAdminChatInterface({
             <button
               onClick={() => handleTabChange('group')}
               className={cn(
-                'flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2',
+                'flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg transition-all duration-200',
                 currentTab === 'group'
-                  ? 'text-orange-600 border-orange-600'
-                  : 'text-gray-600 border-transparent hover:text-gray-900'
+                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/30'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               )}
             >
               <Users className="h-4 w-4" />
               グループチャット
               {initialGroups.length > 0 && (
-                <span className="ml-1 px-2 py-0.5 text-xs bg-gray-100 rounded-full">
+                <span className={cn(
+                  "ml-1 px-2 py-0.5 text-xs rounded-full font-semibold",
+                  currentTab === 'group'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-gray-200 text-gray-700'
+                )}>
                   {initialGroups.length}
                 </span>
               )}
@@ -169,7 +179,7 @@ export function UnifiedAdminChatInterface({
           {currentTab === 'group' && (
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 text-sm bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 shadow-md hover:shadow-lg transition-all duration-200 font-medium"
             >
               <Plus className="h-4 w-4" />
               グループ作成

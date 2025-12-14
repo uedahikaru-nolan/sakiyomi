@@ -39,66 +39,92 @@ export function ResponseManagement({ initialKnowledge, initialTemplates }: Respo
   const [activeTab, setActiveTab] = useState<TabType>('knowledge')
 
   return (
-    <div className="space-y-4">
-      {/* タブナビゲーション */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
+    <div className="space-y-6">
+      {/* Modern Tab Navigation with Gradient */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 overflow-hidden">
+        <nav className="flex p-2 gap-2">
           <button
             onClick={() => setActiveTab('knowledge')}
             className={`
-              py-4 px-1 border-b-2 font-medium text-sm transition-colors
+              flex-1 py-4 px-6 rounded-lg font-medium text-sm transition-all duration-300 ease-in-out
               ${
                 activeTab === 'knowledge'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/30 scale-[1.02]'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }
             `}
           >
-            📚 ナレッジベース
-            <span className="ml-2 text-xs text-gray-400">
-              (AI参照用)
-            </span>
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-xl">📚</span>
+              <div className="flex flex-col items-start">
+                <span>ナレッジベース</span>
+                <span className={`text-xs ${activeTab === 'knowledge' ? 'text-blue-100' : 'text-gray-400'}`}>
+                  AI参照用
+                </span>
+              </div>
+            </div>
           </button>
           <button
             onClick={() => setActiveTab('template')}
             className={`
-              py-4 px-1 border-b-2 font-medium text-sm transition-colors
+              flex-1 py-4 px-6 rounded-lg font-medium text-sm transition-all duration-300 ease-in-out
               ${
                 activeTab === 'template'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/30 scale-[1.02]'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }
             `}
           >
-            ⚡ テンプレート応答
-            <span className="ml-2 text-xs text-gray-400">
-              (自動返信)
-            </span>
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-xl">⚡</span>
+              <div className="flex flex-col items-start">
+                <span>テンプレート応答</span>
+                <span className={`text-xs ${activeTab === 'template' ? 'text-green-100' : 'text-gray-400'}`}>
+                  自動返信
+                </span>
+              </div>
+            </div>
           </button>
         </nav>
       </div>
 
-      {/* タブコンテンツ */}
-      <div className="mt-6">
+      {/* Tab Content with Animation */}
+      <div className="transition-all duration-300 ease-in-out">
         {activeTab === 'knowledge' && (
-          <div>
-            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-1">ナレッジベースとは？</h3>
-              <p className="text-sm text-blue-800">
-                AIが返信を生成する際に参照する情報を登録します。商品情報、サービス内容、よくある質問の回答などを登録しておくと、AIがそれを参考にして適切な返信を作成します。
-              </p>
+          <div className="animate-fadeIn">
+            {/* Info Card with Modern Design */}
+            <div className="mb-6 p-6 bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200/50 rounded-xl shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-blue-500 rounded-lg shadow-md">
+                  <span className="text-2xl">💡</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-blue-900 mb-2 text-lg">ナレッジベースとは？</h3>
+                  <p className="text-sm text-blue-800 leading-relaxed">
+                    AIが返信を生成する際に参照する情報を登録します。商品情報、サービス内容、よくある質問の回答などを登録しておくと、AIがそれを参考にして適切な返信を作成します。
+                  </p>
+                </div>
+              </div>
             </div>
             <KnowledgeBaseList initialData={initialKnowledge} />
           </div>
         )}
 
         {activeTab === 'template' && (
-          <div>
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <h3 className="font-semibold text-green-900 mb-1">テンプレート応答とは？</h3>
-              <p className="text-sm text-green-800">
-                特定のキーワードに対して即座に自動返信する内容を設定します。「契約期間」「料金」などのキーワードを登録すると、ユーザーがそのキーワードを含むメッセージを送った際に、AIを経由せず瞬時に返信します。
-              </p>
+          <div className="animate-fadeIn">
+            {/* Info Card with Modern Design */}
+            <div className="mb-6 p-6 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200/50 rounded-xl shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-green-500 rounded-lg shadow-md">
+                  <span className="text-2xl">⚡</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-green-900 mb-2 text-lg">テンプレート応答とは？</h3>
+                  <p className="text-sm text-green-800 leading-relaxed">
+                    特定のキーワードに対して即座に自動返信する内容を設定します。「契約期間」「料金」などのキーワードを登録すると、ユーザーがそのキーワードを含むメッセージを送った際に、AIを経由せず瞬時に返信します。
+                  </p>
+                </div>
+              </div>
             </div>
             <TemplateResponseList initialData={initialTemplates} />
           </div>

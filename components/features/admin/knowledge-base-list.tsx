@@ -78,29 +78,32 @@ export function KnowledgeBaseList({ initialData }: KnowledgeBaseListProps) {
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-6 flex justify-end">
         <button
           onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 font-medium"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-5 w-5" />
           ナレッジを追加
         </button>
       </div>
 
       {knowledgeList.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>ナレッジがまだ登録されていません</p>
-          <p className="text-sm mt-2">「ナレッジを追加」ボタンから登録してください</p>
+        <div className="text-center py-16 px-4">
+          <div className="inline-block p-4 bg-blue-100 rounded-full mb-4">
+            <span className="text-5xl">📚</span>
+          </div>
+          <p className="text-lg font-medium text-gray-700 mb-2">ナレッジがまだ登録されていません</p>
+          <p className="text-sm text-gray-500">「ナレッジを追加」ボタンから登録してください</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {knowledgeList.map((knowledge) => (
             <div
               key={knowledge.id}
               className={cn(
-                'bg-white border rounded-lg p-4',
-                !knowledge.is_active && 'opacity-60 bg-gray-50'
+                'bg-white border border-gray-200/50 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200',
+                !knowledge.is_active && 'opacity-60 bg-gray-50/50'
               )}
             >
               <div className="flex items-start justify-between">
@@ -156,31 +159,31 @@ export function KnowledgeBaseList({ initialData }: KnowledgeBaseListProps) {
                   </div>
                 </div>
 
-                <div className="flex gap-1 ml-4">
+                <div className="flex gap-2 ml-4">
                   <button
                     onClick={() => handleToggleStatus(knowledge.id, knowledge.is_active)}
-                    className="p-2 hover:bg-gray-100 rounded transition-colors"
+                    className="p-2.5 hover:bg-gray-100 rounded-lg transition-all duration-200 hover:scale-110"
                     title={knowledge.is_active ? '無効化' : '有効化'}
                   >
                     {knowledge.is_active ? (
-                      <Eye className="h-4 w-4 text-green-600" />
+                      <Eye className="h-5 w-5 text-green-600" />
                     ) : (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
+                      <EyeOff className="h-5 w-5 text-gray-400" />
                     )}
                   </button>
                   <button
                     onClick={() => handleEdit(knowledge)}
-                    className="p-2 hover:bg-gray-100 rounded transition-colors"
+                    className="p-2.5 hover:bg-blue-50 rounded-lg transition-all duration-200 hover:scale-110"
                     title="編集"
                   >
-                    <Pencil className="h-4 w-4 text-gray-600" />
+                    <Pencil className="h-5 w-5 text-blue-600" />
                   </button>
                   <button
                     onClick={() => handleDelete(knowledge.id)}
-                    className="p-2 hover:bg-red-50 rounded transition-colors"
+                    className="p-2.5 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-110"
                     title="削除"
                   >
-                    <Trash2 className="h-4 w-4 text-red-600" />
+                    <Trash2 className="h-5 w-5 text-red-600" />
                   </button>
                 </div>
               </div>
