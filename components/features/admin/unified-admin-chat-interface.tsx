@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { MessageCircle, Users, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -9,6 +9,8 @@ import { AdminMessageArea } from './admin-message-area'
 import { GroupChatListAdmin } from './group-chat-list-admin'
 import { AdminGroupMessageArea } from './admin-group-message-area'
 import { GroupChatCreateModal } from './group-chat-create-modal'
+import { GroupChatEditModal } from './group-chat-edit-modal'
+import { getGroupChatDetails } from '@/lib/actions/group-chat'
 
 interface ChatRoom {
   id: string
@@ -30,6 +32,7 @@ interface GroupChat {
   id: string
   name: string
   description: string | null
+  icon_url: string | null
   members_count: number
   last_message: string | null
   last_message_sender: string | null
@@ -66,6 +69,9 @@ export function UnifiedAdminChatInterface({
   const searchParams = useSearchParams()
   const [currentTab, setCurrentTab] = useState(activeTab)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
+  const [editingGroupData, setEditingGroupData] = useState<any>(null)
 
   const handleTabChange = (tab: string) => {
     setCurrentTab(tab)
@@ -91,6 +97,30 @@ export function UnifiedAdminChatInterface({
     params.set('group', groupId)
     params.delete('room')
     router.push(`/admin/chats?${params.toString()}`)
+  }
+
+  const handleEditGroup = async (groupId: string) => {
+    setEditingGroupId(groupId)
+    setIsEditModalOpen(true)
+
+    // グループの詳細を取得
+    const result = await getGroupChatDetails(groupId)
+    if (result.group) {
+      setEditingGroupData({
+        id: groupId,
+        name: result.group.name,
+        description: result.group.description,
+        icon_url: result.group.icon_url,
+        is_read_only: result.group.is_read_only,
+        members: result.group.members?.map((m: any) => m.user_id) || [],
+      })
+    }
+  }
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false)
+    setEditingGroupId(null)
+    setEditingGroupData(null)
   }
 
   return (
@@ -183,6 +213,7 @@ export function UnifiedAdminChatInterface({
               <GroupChatListAdmin
                 groups={initialGroups}
                 onSelectGroup={handleSelectGroup}
+                onEditGroup={handleEditGroup}
                 selectedGroupId={selectedGroupId}
               />
             </div>
@@ -210,6 +241,14 @@ export function UnifiedAdminChatInterface({
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         users={users}
+      />
+
+      {/* グループ編集モーダル */}
+      <GroupChatEditModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        users={users}
+        groupChat={editingGroupData}
       />
     </div>
   )

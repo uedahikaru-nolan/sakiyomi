@@ -25,16 +25,87 @@ interface UserProfile {
 
 interface ProfileDisplayProps {
   user: {
+    id: string
     name: string
     nickname: string | null
     email: string
+    role: string
+    avatar_url: string | null
+    created_at: string
+    updated_at: string
   }
   profile: UserProfile | null
 }
 
 export function ProfileDisplay({ user, profile }: ProfileDisplayProps) {
+  const getRoleName = (role: string) => {
+    switch (role) {
+      case 'super_admin':
+        return 'スーパー管理者'
+      case 'admin':
+        return '管理者'
+      case 'member':
+        return 'メンバー'
+      default:
+        return role
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
   return (
     <div className="space-y-6">
+      {/* アカウント情報 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>アカウント情報</CardTitle>
+          <CardDescription>
+            あなたのシステム上のアカウント情報です
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <div className="text-sm font-medium text-muted-foreground mb-1">ユーザーID</div>
+              <div className="text-base font-mono text-xs">{user.id}</div>
+            </div>
+
+            <div>
+              <div className="text-sm font-medium text-muted-foreground mb-1">役割</div>
+              <div className="text-base">
+                <span className={`px-2 py-1 rounded-md text-xs font-semibold ${
+                  user.role === 'super_admin' || user.role === 'admin'
+                    ? 'bg-orange-100 text-orange-700'
+                    : 'bg-blue-100 text-blue-700'
+                }`}>
+                  {getRoleName(user.role)}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <div className="text-sm font-medium text-muted-foreground mb-1">登録日時</div>
+              <div className="text-base">{formatDate(user.created_at)}</div>
+            </div>
+
+            <div>
+              <div className="text-sm font-medium text-muted-foreground mb-1">最終更新日時</div>
+              <div className="text-base">{formatDate(user.updated_at)}</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 基本情報 */}
       <Card>
         <CardHeader>
           <CardTitle>基本情報</CardTitle>
@@ -65,6 +136,17 @@ export function ProfileDisplay({ user, profile }: ProfileDisplayProps) {
               <div>
                 <div className="text-sm font-medium text-muted-foreground mb-1">Discord名</div>
                 <div className="text-base">{profile.discord_name}</div>
+              </div>
+            )}
+
+            {user.avatar_url && (
+              <div>
+                <div className="text-sm font-medium text-muted-foreground mb-1">アバター画像</div>
+                <img
+                  src={user.avatar_url}
+                  alt="アバター"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                />
               </div>
             )}
           </div>

@@ -2,13 +2,15 @@
 
 import { formatDistanceToNow } from 'date-fns'
 import { ja } from 'date-fns/locale'
-import { Users, MessageCircle } from 'lucide-react'
+import { Users, MessageCircle, Edit } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import Image from 'next/image'
 
 interface GroupChat {
   id: string
   name: string
   description: string | null
+  icon_url: string | null
   members_count: number
   last_message: string | null
   last_message_sender: string | null
@@ -20,10 +22,11 @@ interface GroupChat {
 interface GroupChatListAdminProps {
   groups: GroupChat[]
   onSelectGroup?: (groupId: string) => void
+  onEditGroup?: (groupId: string) => void
   selectedGroupId?: string
 }
 
-export function GroupChatListAdmin({ groups, onSelectGroup, selectedGroupId }: GroupChatListAdminProps) {
+export function GroupChatListAdmin({ groups, onSelectGroup, onEditGroup, selectedGroupId }: GroupChatListAdminProps) {
   if (groups.length === 0) {
     return (
       <div className="p-8 text-center">
@@ -41,20 +44,35 @@ export function GroupChatListAdmin({ groups, onSelectGroup, selectedGroupId }: G
   return (
     <div className="space-y-2">
       {groups.map(group => (
-        <button
+        <div
           key={group.id}
-          onClick={() => onSelectGroup?.(group.id)}
           className={cn(
-            'w-full p-3 text-left transition-colors rounded-md',
+            'relative p-3 transition-colors rounded-md',
             'hover:bg-gray-50',
             selectedGroupId === group.id && 'bg-blue-50 hover:bg-blue-100 border-l-4 border-blue-600'
           )}
         >
+          <button
+            onClick={() => onSelectGroup?.(group.id)}
+            className="w-full text-left"
+          >
           <div className="flex items-start gap-3">
             {/* グループアイコン */}
             <div className="flex-shrink-0">
-              <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
-                <Users className="h-5 w-5" />
+              <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-gray-200">
+                {group.icon_url ? (
+                  <Image
+                    src={group.icon_url}
+                    alt={group.name}
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-blue-600 flex items-center justify-center text-white">
+                    <Users className="h-5 w-5" />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -92,7 +110,22 @@ export function GroupChatListAdmin({ groups, onSelectGroup, selectedGroupId }: G
               </div>
             </div>
           </div>
-        </button>
+          </button>
+
+          {/* 編集ボタン */}
+          {onEditGroup && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onEditGroup(group.id)
+              }}
+              className="absolute top-3 right-3 p-2 hover:bg-blue-100 rounded-md transition-colors text-blue-600"
+              aria-label="グループを編集"
+            >
+              <Edit className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       ))}
     </div>
   )

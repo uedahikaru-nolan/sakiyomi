@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { createClient } from '@/lib/supabase/server'
 import { FloatingChatButton } from '@/components/features/chat/floating-chat-button'
+import { getTotalGroupUnreadCount } from '@/lib/actions/group-chat'
+import { getUnreadCount } from '@/lib/actions/chat'
 
 export default async function DashboardLayout({
   children,
@@ -25,6 +27,15 @@ export default async function DashboardLayout({
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .eq('is_read', false)
+
+  // Get group chat unread count
+  const { count: groupUnreadCount } = await getTotalGroupUnreadCount()
+
+  // Get direct chat unread count
+  const { count: directUnreadCount } = await getUnreadCount()
+
+  // Total chat unread count
+  const totalChatUnreadCount = (groupUnreadCount || 0) + (directUnreadCount || 0)
 
   // Check if user is admin
   const { data: userData } = await supabase
@@ -60,6 +71,17 @@ export default async function DashboardLayout({
               <a href="/dashboard/courses" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
                 コース
               </a>
+              <Link href="/dashboard/chats" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors relative">
+                💬 チャット
+                {totalChatUnreadCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-2 -right-3 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                  >
+                    {totalChatUnreadCount > 9 ? '9+' : totalChatUnreadCount}
+                  </Badge>
+                )}
+              </Link>
               <a href="/dashboard/community" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
                 コミュニティ
               </a>

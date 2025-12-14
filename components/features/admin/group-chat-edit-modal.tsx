@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createGroupChat } from '@/lib/actions/group-chat'
+import { updateGroupChat } from '@/lib/actions/group-chat'
 import { UserSelector } from './user-selector'
-import { X, Users, Upload } from 'lucide-react'
+import { X, Users, Upload, Edit } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import Image from 'next/image'
 
@@ -16,13 +16,23 @@ interface User {
   role: string
 }
 
-interface GroupChatCreateModalProps {
+interface GroupChat {
+  id: string
+  name: string
+  description: string | null
+  icon_url: string | null
+  is_read_only: boolean
+  members: string[]
+}
+
+interface GroupChatEditModalProps {
   isOpen: boolean
   onClose: () => void
   users: User[]
+  groupChat: GroupChat | null
 }
 
-export function GroupChatCreateModal({ isOpen, onClose, users }: GroupChatCreateModalProps) {
+export function GroupChatEditModal({ isOpen, onClose, users, groupChat }: GroupChatEditModalProps) {
   const router = useRouter()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -32,6 +42,20 @@ export function GroupChatCreateModal({ isOpen, onClose, users }: GroupChatCreate
   const [error, setError] = useState<string | null>(null)
   const [iconPreview, setIconPreview] = useState<string | null>(null)
   const [iconFile, setIconFile] = useState<File | null>(null)
+  const [removeIcon, setRemoveIcon] = useState(false)
+
+  // グループチャット情報をフォームに設定
+  useEffect(() => {
+    if (groupChat) {
+      setName(groupChat.name)
+      setDescription(groupChat.description || '')
+      setSelectedUserIds(groupChat.members || [])
+      setIsReadOnly(groupChat.is_read_only || false)
+      setIconPreview(groupChat.icon_url)
+      setIconFile(null)
+      setRemoveIcon(false)
+    }
+  }, [groupChat])
 
   const handleIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -50,6 +74,7 @@ export function GroupChatCreateModal({ isOpen, onClose, users }: GroupChatCreate
     }
 
     setIconFile(file)
+    setRemoveIcon(false)
     setError(null)
 
     // プレビュー表示
@@ -63,11 +88,17 @@ export function GroupChatCreateModal({ isOpen, onClose, users }: GroupChatCreate
   const handleRemoveIcon = () => {
     setIconFile(null)
     setIconPreview(null)
+    setRemoveIcon(true)
   }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
+
+    if (!groupChat) {
+      setError('グループチャット情報が見つかりません')
+      return
+    }
 
     if (!name.trim()) {
       setError('グループ名を入力してください')
@@ -82,25 +113,21 @@ export function GroupChatCreateModal({ isOpen, onClose, users }: GroupChatCreate
     setIsSubmitting(true)
 
     try {
-      const result = await createGroupChat(
+      const result = await updateGroupChat(
+        groupChat.id,
         name,
         description || null,
         selectedUserIds,
         isReadOnly,
-        iconFile
+        iconFile,
+        removeIcon
       )
 
       if (result.error) {
         setError(result.error)
         setIsSubmitting(false)
-      } else if (result.groupChat) {
-        // 作成成功
-        setName('')
-        setDescription('')
-        setSelectedUserIds([])
-        setIsReadOnly(false)
-        setIconPreview(null)
-        setIconFile(null)
+      } else if (result.success) {
+        // 更新成功
         router.refresh()
         onClose()
       }
@@ -113,18 +140,12 @@ export function GroupChatCreateModal({ isOpen, onClose, users }: GroupChatCreate
 
   const handleClose = () => {
     if (!isSubmitting) {
-      setName('')
-      setDescription('')
-      setSelectedUserIds([])
-      setIsReadOnly(false)
-      setIconPreview(null)
-      setIconFile(null)
       setError(null)
       onClose()
     }
   }
 
-  if (!isOpen) return null
+  if (!isOpen || !groupChat) return null
 
   return (
     <>
@@ -143,12 +164,12 @@ export function GroupChatCreateModal({ isOpen, onClose, users }: GroupChatCreate
           {/* ヘッダー */}
           <div className="flex items-center justify-between p-6 border-b">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-orange-600 flex items-center justify-center text-white">
-                <Users className="h-5 w-5" />
+              <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white">
+                <Edit className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">新規グループチャット作成</h2>
-                <p className="text-sm text-muted-foreground">複数のユーザーとグループで会話できます</p>
+                <h2 className="text-xl font-bold text-gray-900">グループチャット編集</h2>
+                <p className="text-sm text-muted-foreground">グループの情報を更新します</p>
               </div>
             </div>
             <button
@@ -207,14 +228,14 @@ export function GroupChatCreateModal({ isOpen, onClose, users }: GroupChatCreate
                   <div className="flex-1">
                     <input
                       type="file"
-                      id="groupIcon"
+                      id="groupIconEdit"
                       accept="image/*"
                       onChange={handleIconChange}
                       disabled={isSubmitting}
                       className="hidden"
                     />
                     <label
-                      htmlFor="groupIcon"
+                      htmlFor="groupIconEdit"
                       className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       <Upload className="h-4 w-4" />
@@ -229,17 +250,17 @@ export function GroupChatCreateModal({ isOpen, onClose, users }: GroupChatCreate
 
               {/* グループ名 */}
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="editName" className="block text-sm font-medium text-gray-700 mb-2">
                   グループ名 <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  id="name"
+                  id="editName"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="例: プロジェクトAチーム"
                   maxLength={100}
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={isSubmitting}
                   required
                 />
@@ -250,16 +271,16 @@ export function GroupChatCreateModal({ isOpen, onClose, users }: GroupChatCreate
 
               {/* グループ説明 */}
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="editDescription" className="block text-sm font-medium text-gray-700 mb-2">
                   グループ説明（オプション）
                 </label>
                 <textarea
-                  id="description"
+                  id="editDescription"
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   placeholder="このグループチャットの目的や説明を入力してください"
                   rows={3}
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   disabled={isSubmitting}
                 />
               </div>
@@ -272,7 +293,7 @@ export function GroupChatCreateModal({ isOpen, onClose, users }: GroupChatCreate
                     checked={isReadOnly}
                     onChange={e => setIsReadOnly(e.target.checked)}
                     disabled={isSubmitting}
-                    className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
                   <span className="text-sm font-medium text-gray-700">
                     読み取り専用（管理者のみメッセージ送信可能）
@@ -309,10 +330,10 @@ export function GroupChatCreateModal({ isOpen, onClose, users }: GroupChatCreate
               <button
                 type="submit"
                 disabled={isSubmitting || !name.trim() || selectedUserIds.length === 0}
-                className="flex items-center gap-2 px-6 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <Users className="h-4 w-4" />
-                {isSubmitting ? '作成中...' : 'グループチャットを作成'}
+                <Edit className="h-4 w-4" />
+                {isSubmitting ? '更新中...' : 'グループチャットを更新'}
               </button>
             </div>
           </form>

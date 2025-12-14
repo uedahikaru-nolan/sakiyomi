@@ -21,9 +21,12 @@ interface Message {
 interface MessageListProps {
   messages: Message[]
   currentUserId?: string // 現在のユーザーID（admin画面用）
+  isAdminView?: boolean // 管理者ビューかどうか
+  onEditMessage?: (messageId: string, currentMessage: string) => void
+  onDeleteMessage?: (messageId: string) => void
 }
 
-export function MessageList({ messages, currentUserId }: MessageListProps) {
+export function MessageList({ messages, currentUserId, isAdminView = false, onEditMessage, onDeleteMessage }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -97,6 +100,10 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
               isAdmin={isAdmin}
               timestamp={message.created_at}
               isOwnMessage={isOwnMessage}
+              messageId={message.id}
+              canEdit={isAdminView && isOwnMessage && isAdmin}
+              onEdit={onEditMessage}
+              onDelete={onDeleteMessage}
             />
           </div>
         )

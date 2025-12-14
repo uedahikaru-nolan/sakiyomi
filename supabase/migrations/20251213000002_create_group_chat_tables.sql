@@ -76,11 +76,19 @@ ALTER TABLE group_chat_messages ENABLE ROW LEVEL SECURITY;
 
 -- ===== group_chats のRLSポリシー =====
 
--- 読み取り: メンバーのみ閲覧可能
+-- 読み取り: メンバーまたは管理者のみ閲覧可能
 CREATE POLICY "Users can view groups they are members of"
 ON group_chats FOR SELECT
 TO authenticated
 USING (
+  -- 管理者は全て見れる
+  EXISTS (
+    SELECT 1 FROM users
+    WHERE users.id = auth.uid()
+    AND users.role IN ('admin', 'super_admin')
+  )
+  OR
+  -- 自分がメンバーであるグループを見れる
   EXISTS (
     SELECT 1 FROM group_chat_members
     WHERE group_chat_members.group_chat_id = group_chats.id
@@ -126,14 +134,19 @@ USING (
 
 -- ===== group_chat_members のRLSポリシー =====
 
--- 読み取り: 同じグループのメンバーのみ閲覧可能
+-- 読み取り: 自分のレコードまたは管理者なら閲覧可能（無限再帰を避ける）
 CREATE POLICY "Users can view group members"
 ON group_chat_members FOR SELECT
 TO authenticated
 USING (
-  group_chat_id IN (
-    SELECT group_chat_id FROM group_chat_members
-    WHERE user_id = auth.uid()
+  -- 自分がメンバーとして登録されているレコードを見れる
+  user_id = auth.uid()
+  OR
+  -- または、管理者は全て見れる
+  EXISTS (
+    SELECT 1 FROM users
+    WHERE users.id = auth.uid()
+    AND users.role IN ('admin', 'super_admin')
   )
 );
 

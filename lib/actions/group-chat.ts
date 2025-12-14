@@ -30,7 +30,9 @@ async function requireAdmin() {
 export async function createGroupChat(
   name: string,
   description: string | null,
-  userIds: string[]
+  userIds: string[],
+  isReadOnly: boolean = false,
+  iconFile: File | null = null
 ) {
   try {
     const { user, supabase } = await requireAdmin()
@@ -48,6 +50,37 @@ export async function createGroupChat(
       return { error: '最低1人のメンバーを選択してください' }
     }
 
+    // アイコン画像の処理
+    let iconUrl: string | null = null
+    if (iconFile && iconFile.size > 0) {
+      try {
+        const fileExt = iconFile.name.split('.').pop()
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+        const filePath = `group-icons/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('group-icons')
+          .upload(filePath, iconFile, {
+            cacheControl: '3600',
+            upsert: false,
+          })
+
+        if (uploadError) {
+          console.error('Icon upload error:', uploadError)
+          return { error: `アイコンのアップロードに失敗しました: ${uploadError.message}` }
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('group-icons')
+          .getPublicUrl(filePath)
+
+        iconUrl = publicUrl
+      } catch (error) {
+        console.error('Icon upload error:', error)
+        return { error: 'アイコンの処理中にエラーが発生しました' }
+      }
+    }
+
     // グループチャットを作成
     const { data: groupChat, error: groupError } = await supabase
       .from('group_chats')
@@ -55,6 +88,8 @@ export async function createGroupChat(
         name: name.trim(),
         description: description?.trim() || null,
         created_by: user.id,
+        is_read_only: isReadOnly,
+        icon_url: iconUrl,
       })
       .select()
       .single()
@@ -88,6 +123,169 @@ export async function createGroupChat(
   } catch (error) {
     console.error('Error in createGroupChat:', error)
     return { error: 'グループチャットの作成に失敗しました' }
+  }
+}
+
+/**
+ * グループチャットを更新
+ */
+export async function updateGroupChat(
+  groupChatId: string,
+  name: string,
+  description: string | null,
+  userIds: string[],
+  isReadOnly: boolean = false,
+  iconFile: File | null = null,
+  removeIcon: boolean = false
+) {
+  try {
+    const { user, supabase } = await requireAdmin()
+
+    // バリデーション
+    if (!name || name.trim().length === 0) {
+      return { error: 'グループ名を入力してください' }
+    }
+
+    if (name.length > 100) {
+      return { error: 'グループ名は100文字以内で入力してください' }
+    }
+
+    if (!userIds || userIds.length === 0) {
+      return { error: '最低1人のメンバーを選択してください' }
+    }
+
+    // グループチャットが存在するか確認
+    const { data: existingGroup } = await supabase
+      .from('group_chats')
+      .select('id, icon_url')
+      .eq('id', groupChatId)
+      .single()
+
+    if (!existingGroup) {
+      return { error: 'グループチャットが見つかりません' }
+    }
+
+    // アイコン画像の処理
+    let iconUrl: string | null = existingGroup.icon_url
+
+    // アイコン削除リクエストの場合
+    if (removeIcon) {
+      if (existingGroup.icon_url) {
+        try {
+          // URLからファイルパスを抽出
+          const url = new URL(existingGroup.icon_url)
+          const pathParts = url.pathname.split('/')
+          const bucketIndex = pathParts.indexOf('group-icons')
+          if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
+            const filePath = pathParts.slice(bucketIndex + 1).join('/')
+            await supabase.storage
+              .from('group-icons')
+              .remove([filePath])
+          }
+        } catch (deleteError) {
+          console.error('Failed to delete icon:', deleteError)
+          // 削除失敗してもエラーにはしない
+        }
+      }
+      iconUrl = null
+    } else if (iconFile && iconFile.size > 0) {
+      try {
+        // 既存のアイコンを削除（存在する場合）
+        if (existingGroup.icon_url) {
+          try {
+            // URLからファイルパスを抽出
+            const url = new URL(existingGroup.icon_url)
+            const pathParts = url.pathname.split('/')
+            const bucketIndex = pathParts.indexOf('group-icons')
+            if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
+              const filePath = pathParts.slice(bucketIndex + 1).join('/')
+              await supabase.storage
+                .from('group-icons')
+                .remove([filePath])
+            }
+          } catch (deleteError) {
+            console.error('Failed to delete old icon:', deleteError)
+            // 削除失敗してもアップロードは続行
+          }
+        }
+
+        // 新しい画像をアップロード
+        const fileExt = iconFile.name.split('.').pop()
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+        const filePath = `group-icons/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('group-icons')
+          .upload(filePath, iconFile, {
+            cacheControl: '3600',
+            upsert: false,
+          })
+
+        if (uploadError) {
+          console.error('Icon upload error:', uploadError)
+          return { error: `アイコンのアップロードに失敗しました: ${uploadError.message}` }
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('group-icons')
+          .getPublicUrl(filePath)
+
+        iconUrl = publicUrl
+      } catch (error) {
+        console.error('Icon upload error:', error)
+        return { error: 'アイコンの処理中にエラーが発生しました' }
+      }
+    }
+
+    // グループチャットを更新
+    const { error: updateError } = await supabase
+      .from('group_chats')
+      .update({
+        name: name.trim(),
+        description: description?.trim() || null,
+        is_read_only: isReadOnly,
+        icon_url: iconUrl,
+      })
+      .eq('id', groupChatId)
+
+    if (updateError) {
+      console.error('Failed to update group chat:', updateError)
+      return { error: 'グループチャットの更新に失敗しました' }
+    }
+
+    // 既存のメンバーを削除
+    const { error: deleteError } = await supabase
+      .from('group_chat_members')
+      .delete()
+      .eq('group_chat_id', groupChatId)
+
+    if (deleteError) {
+      console.error('Failed to delete members:', deleteError)
+      return { error: 'メンバーの更新に失敗しました' }
+    }
+
+    // 新しいメンバーを追加
+    const members = userIds.map(userId => ({
+      group_chat_id: groupChatId,
+      user_id: userId,
+    }))
+
+    const { error: membersError } = await supabase
+      .from('group_chat_members')
+      .insert(members)
+
+    if (membersError) {
+      console.error('Failed to add members:', membersError)
+      return { error: 'メンバーの追加に失敗しました' }
+    }
+
+    revalidatePath('/admin/group-chats')
+    revalidatePath('/dashboard/chats')
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error in updateGroupChat:', error)
+    return { error: 'グループチャットの更新に失敗しました' }
   }
 }
 
@@ -421,6 +619,27 @@ export async function sendGroupMessage(groupChatId: string, message: string) {
       return { error: 'このグループチャットにメッセージを送信する権限がありません' }
     }
 
+    // グループチャットの読み取り専用チェック
+    const { data: groupChat } = await supabase
+      .from('group_chats')
+      .select('is_read_only')
+      .eq('id', groupChatId)
+      .single()
+
+    // 読み取り専用の場合、管理者以外は送信不可
+    if (groupChat?.is_read_only) {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      const isAdmin = userData?.role === 'admin' || userData?.role === 'super_admin'
+      if (!isAdmin) {
+        return { error: 'このグループチャットは読み取り専用です。管理者のみメッセージを送信できます。' }
+      }
+    }
+
     // メッセージを送信
     const { data: newMessage, error: insertError } = await supabase
       .from('group_chat_messages')
@@ -531,5 +750,165 @@ export async function getAllUsers() {
   } catch (error) {
     console.error('Error in getAllUsers:', error)
     return { error: 'ユーザー一覧の取得に失敗しました' }
+  }
+}
+
+/**
+ * 全グループチャットの合計未読数を取得
+ */
+export async function getTotalGroupUnreadCount() {
+  try {
+    const user = await requireUser()
+    const supabase = await createClient()
+
+    // ユーザーが参加しているグループを取得
+    const { data: memberGroups, error: memberError } = await supabase
+      .from('group_chat_members')
+      .select('group_chat_id, last_read_at')
+      .eq('user_id', user.id)
+
+    if (memberError) {
+      console.error('Failed to fetch member groups:', memberError)
+      return { count: 0 }
+    }
+
+    if (!memberGroups || memberGroups.length === 0) {
+      return { count: 0 }
+    }
+
+    let totalUnread = 0
+
+    // 各グループの未読数を計算
+    for (const member of memberGroups) {
+      const { count } = await supabase
+        .from('group_chat_messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('group_chat_id', member.group_chat_id)
+        .neq('sender_id', user.id)
+        .gt('created_at', member.last_read_at || '1970-01-01')
+
+      totalUnread += count || 0
+    }
+
+    return { count: totalUnread }
+  } catch (error) {
+    console.error('Error in getTotalGroupUnreadCount:', error)
+    return { count: 0 }
+  }
+}
+
+/**
+ * グループチャットメッセージを削除（管理者のみ）
+ */
+export async function deleteGroupMessage(messageId: string) {
+  try {
+    const user = await requireUser()
+    const supabase = await createClient()
+
+    // ユーザー権限確認
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const isAdmin = userData?.role === 'admin' || userData?.role === 'super_admin'
+
+    // メッセージ確認
+    const { data: message } = await supabase
+      .from('group_chat_messages')
+      .select('sender_id')
+      .eq('id', messageId)
+      .single()
+
+    if (!message) {
+      return { error: 'メッセージが見つかりません' }
+    }
+
+    // 管理者かつ自分が送信したメッセージのみ削除可能
+    if (!isAdmin || message.sender_id !== user.id) {
+      return { error: 'このメッセージを削除する権限がありません' }
+    }
+
+    // メッセージを削除
+    const { error } = await supabase
+      .from('group_chat_messages')
+      .delete()
+      .eq('id', messageId)
+
+    if (error) {
+      console.error('Failed to delete group message:', error)
+      return { error: 'メッセージの削除に失敗しました' }
+    }
+
+    revalidatePath('/admin/group-chats')
+    return { success: true }
+  } catch (error) {
+    console.error('Error in deleteGroupMessage:', error)
+    return { error: 'メッセージの削除に失敗しました' }
+  }
+}
+
+/**
+ * グループチャットメッセージを編集（管理者のみ）
+ */
+export async function updateGroupMessage(messageId: string, newMessage: string) {
+  try {
+    const user = await requireUser()
+    const supabase = await createClient()
+
+    // バリデーション
+    const trimmedMessage = newMessage.trim()
+    if (!trimmedMessage) {
+      return { error: 'メッセージを入力してください' }
+    }
+    if (trimmedMessage.length > 2000) {
+      return { error: 'メッセージは2000文字以内で入力してください' }
+    }
+
+    // ユーザー権限確認
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const isAdmin = userData?.role === 'admin' || userData?.role === 'super_admin'
+
+    // メッセージ確認
+    const { data: message } = await supabase
+      .from('group_chat_messages')
+      .select('sender_id')
+      .eq('id', messageId)
+      .single()
+
+    if (!message) {
+      return { error: 'メッセージが見つかりません' }
+    }
+
+    // 管理者かつ自分が送信したメッセージのみ編集可能
+    if (!isAdmin || message.sender_id !== user.id) {
+      return { error: 'このメッセージを編集する権限がありません' }
+    }
+
+    // メッセージを更新
+    const { error } = await supabase
+      .from('group_chat_messages')
+      .update({
+        message: trimmedMessage,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', messageId)
+
+    if (error) {
+      console.error('Failed to update group message:', error)
+      return { error: 'メッセージの編集に失敗しました' }
+    }
+
+    revalidatePath('/admin/group-chats')
+    return { success: true }
+  } catch (error) {
+    console.error('Error in updateGroupMessage:', error)
+    return { error: 'メッセージの編集に失敗しました' }
   }
 }

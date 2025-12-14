@@ -10,7 +10,7 @@ export default async function ProfilePage() {
 
   const { data: userData } = await supabase
     .from('users')
-    .select('name, nickname, email')
+    .select('*')
     .eq('id', user.id)
     .single()
 
@@ -38,6 +38,7 @@ export default async function ProfilePage() {
     name: user.user_metadata?.name || user.email?.split('@')[0] || '',
     nickname: null,
     email: user.email || '',
+    avatar_url: null,
   }
 
   // Merge user and profile data for display

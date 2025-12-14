@@ -41,6 +41,9 @@ export default async function AdminLayout({
               <a href="/admin/chats" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
                 💬 チャット
               </a>
+              <a href="/admin/responses" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
+                📝 返信管理
+              </a>
               <a href="/admin/users" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
                 会員管理
               </a>

@@ -1,17 +1,16 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { X, Send } from 'lucide-react'
+import { Send } from 'lucide-react'
 import { useChatMessages } from '@/lib/hooks/useChatMessages'
 import { MessageList } from './message-list'
 import { cn } from '@/lib/utils/cn'
 
-interface ChatWindowProps {
+interface UserDirectChatProps {
   roomId: string
-  onClose: () => void
 }
 
-export function ChatWindow({ roomId, onClose }: ChatWindowProps) {
+export function UserDirectChat({ roomId }: UserDirectChatProps) {
   const { messages, isLoading, isSending, error, sendMessage, markAsRead } = useChatMessages(roomId)
   const [inputValue, setInputValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -28,21 +27,13 @@ export function ChatWindow({ roomId, onClose }: ChatWindowProps) {
     const message = inputValue.trim()
     if (!message || isSending) return
 
-    console.log('[ChatWindow] Submitting message')
-
-    // メッセージを送信
     const success = await sendMessage(message)
 
-    console.log('[ChatWindow] Send result:', success)
-
     if (success) {
-      console.log('[ChatWindow] Clearing input')
-      // 入力をクリア
       setInputValue('')
-      // テキストエリアの高さをリセット
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'
-        textareaRef.current.focus() // フォーカスを戻す
+        textareaRef.current.focus()
       }
     }
   }
@@ -66,28 +57,13 @@ export function ChatWindow({ roomId, onClose }: ChatWindowProps) {
   }
 
   return (
-    <div
-      className={cn(
-        'fixed z-50 flex flex-col bg-white shadow-2xl',
-        // デスクトップ: 右下ポップアップ
-        'md:bottom-24 md:right-6 md:h-[600px] md:max-h-[80vh] md:w-96 md:rounded-lg',
-        // モバイル: フルスクリーン
-        'max-md:inset-0 max-md:h-full max-md:w-full'
-      )}
-    >
+    <div className="bg-white rounded-lg border shadow-sm h-full max-h-[80vh] flex flex-col overflow-hidden">
       {/* ヘッダー */}
-      <div className="flex items-center justify-between border-b bg-orange-600 p-4 text-white md:rounded-t-lg">
+      <div className="flex items-center justify-between border-b bg-orange-600 p-4 text-white">
         <div>
           <h3 className="font-semibold">運営サポート</h3>
           <p className="text-xs text-orange-100">お気軽にご質問ください</p>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-full p-1 hover:bg-orange-700 transition-colors"
-          aria-label="チャットを閉じる"
-        >
-          <X className="h-5 w-5" />
-        </button>
       </div>
 
       {/* メッセージエリア */}
@@ -106,7 +82,7 @@ export function ChatWindow({ roomId, onClose }: ChatWindowProps) {
       </div>
 
       {/* 入力エリア */}
-      <div className="border-t p-4">
+      <div className="border-t p-4 bg-white">
         {error && (
           <div className="mb-2 text-xs text-destructive bg-destructive/10 p-3 rounded-md border border-destructive/20">
             <div className="font-semibold mb-1">エラー</div>

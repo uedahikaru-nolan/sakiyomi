@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Send, MoreVertical, Circle } from 'lucide-react'
+import { Send, MoreVertical, Circle, Sparkles } from 'lucide-react'
 import { useChatMessages } from '@/lib/hooks/useChatMessages'
 import { MessageList } from '@/components/features/chat/message-list'
 import { cn } from '@/lib/utils/cn'
 import { updateChatRoomStatus } from '@/lib/actions/admin-chat'
 import { createClient } from '@/lib/supabase/client'
+import { generateAIReply } from '@/lib/actions/ai-reply'
+import { deleteMessage, updateMessage } from '@/lib/actions/chat'
 
 interface AdminMessageAreaProps {
   roomId: string
@@ -18,6 +20,9 @@ export function AdminMessageArea({ roomId }: AdminMessageAreaProps) {
   const [inputValue, setInputValue] = useState('')
   const [showStatusMenu, setShowStatusMenu] = useState(false)
   const [roomStatus, setRoomStatus] = useState<string>('open')
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editingMessageText, setEditingMessageText] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const statusMenuRef = useRef<HTMLDivElement>(null)
 
@@ -79,9 +84,9 @@ export function AdminMessageArea({ roomId }: AdminMessageAreaProps) {
     }
   }
 
-  // Enterキーで送信（Shift+Enterで改行）
+  // Cmd+Enter（またはCtrl+Enter）で送信、Enterで改行
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault()
       handleSubmit(e)
     }
@@ -92,8 +97,8 @@ export function AdminMessageArea({ roomId }: AdminMessageAreaProps) {
     setInputValue(e.target.value)
 
     const textarea = e.target
-    textarea.style.height = 'auto'
-    const newHeight = Math.min(textarea.scrollHeight, 120)
+    textarea.style.height = '40px' // 最小高さにリセット
+    const newHeight = Math.min(Math.max(textarea.scrollHeight, 40), 200)
     textarea.style.height = `${newHeight}px`
   }
 
@@ -104,6 +109,71 @@ export function AdminMessageArea({ roomId }: AdminMessageAreaProps) {
     if (!result.error) {
       setRoomStatus(newStatus)
       setShowStatusMenu(false)
+    }
+  }
+
+  // AI返信生成
+  const handleGenerateAIReply = async () => {
+    if (!currentUserId || isGeneratingAI) return
+
+    setIsGeneratingAI(true)
+
+    try {
+      const result = await generateAIReply(messages, currentUserId)
+
+      if (result.error) {
+        alert(`エラー: ${result.error}`)
+      } else if (result.reply) {
+        setInputValue(result.reply)
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto'
+          const newHeight = Math.min(textareaRef.current.scrollHeight, 120)
+          textareaRef.current.style.height = `${newHeight}px`
+          textareaRef.current.focus()
+        }
+      }
+    } catch (error) {
+      console.error('AI reply generation error:', error)
+      alert('AI返信の生成に失敗しました')
+    } finally {
+      setIsGeneratingAI(false)
+    }
+  }
+
+  // メッセージ編集
+  const handleEditMessage = (messageId: string, currentMessage: string) => {
+    setEditingMessageId(messageId)
+    setEditingMessageText(currentMessage)
+  }
+
+  // メッセージ編集送信
+  const handleSubmitEdit = async () => {
+    if (!editingMessageId) return
+
+    const trimmed = editingMessageText.trim()
+    if (!trimmed) {
+      alert('メッセージを入力してください')
+      return
+    }
+
+    const result = await updateMessage(editingMessageId, trimmed)
+
+    if (result.error) {
+      alert(`エラー: ${result.error}`)
+    } else {
+      setEditingMessageId(null)
+      setEditingMessageText('')
+    }
+  }
+
+  // メッセージ削除
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm('このメッセージを削除しますか?')) return
+
+    const result = await deleteMessage(messageId)
+
+    if (result.error) {
+      alert(`エラー: ${result.error}`)
     }
   }
 
@@ -128,7 +198,7 @@ export function AdminMessageArea({ roomId }: AdminMessageAreaProps) {
   const statusInfo = getStatusInfo(roomStatus)
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full max-h-[80vh] flex-col">
       {/* ヘッダー */}
       <div className="flex items-center justify-between border-b p-4 bg-white">
         <div className="flex items-center gap-3">
@@ -197,7 +267,7 @@ export function AdminMessageArea({ roomId }: AdminMessageAreaProps) {
       </div>
 
       {/* メッセージエリア */}
-      <div className="flex-1 overflow-hidden bg-gray-50">
+      <div className="flex-1 min-h-0 overflow-hidden bg-gray-50">
         {isLoading ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-sm text-muted-foreground">読み込み中...</div>
@@ -207,7 +277,13 @@ export function AdminMessageArea({ roomId }: AdminMessageAreaProps) {
             <div className="text-sm text-destructive">{error}</div>
           </div>
         ) : (
-          <MessageList messages={messages} currentUserId={currentUserId || undefined} />
+          <MessageList
+            messages={messages}
+            currentUserId={currentUserId || undefined}
+            isAdminView={true}
+            onEditMessage={handleEditMessage}
+            onDeleteMessage={handleDeleteMessage}
+          />
         )}
       </div>
 
@@ -220,6 +296,44 @@ export function AdminMessageArea({ roomId }: AdminMessageAreaProps) {
           </div>
         )}
 
+        {/* 編集モード */}
+        {editingMessageId && (
+          <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-blue-900">メッセージを編集中</span>
+              <button
+                onClick={() => {
+                  setEditingMessageId(null)
+                  setEditingMessageText('')
+                }}
+                className="text-xs text-blue-600 hover:text-blue-800"
+              >
+                キャンセル
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <textarea
+                value={editingMessageText}
+                onChange={(e) => setEditingMessageText(e.target.value)}
+                className="flex-1 resize-none rounded-md border border-blue-300 bg-white px-3 py-2 text-sm min-h-[60px]"
+                placeholder="編集内容を入力..."
+              />
+              <button
+                onClick={handleSubmitEdit}
+                disabled={!editingMessageText.trim()}
+                className={cn(
+                  'flex h-10 w-10 items-center justify-center rounded-md',
+                  'bg-blue-600 text-white hover:bg-blue-700',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                  'transition-colors'
+                )}
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex gap-2">
           <textarea
             ref={textareaRef}
@@ -228,15 +342,35 @@ export function AdminMessageArea({ roomId }: AdminMessageAreaProps) {
             onKeyDown={handleKeyDown}
             placeholder="メッセージを入力..."
             className={cn(
-              'flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm',
+              'flex-1 resize-y rounded-md border border-input bg-background px-3 py-2 text-sm',
               'placeholder:text-muted-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               'disabled:cursor-not-allowed disabled:opacity-50',
-              'min-h-[40px] max-h-[120px]'
+              'min-h-[40px] max-h-[400px]'
             )}
             disabled={isSending}
-            rows={1}
+            style={{ height: '40px' }}
           />
+          <button
+            type="button"
+            onClick={handleGenerateAIReply}
+            disabled={isGeneratingAI || isSending || messages.length === 0}
+            className={cn(
+              'flex h-10 w-10 items-center justify-center rounded-md',
+              'bg-purple-600 text-white',
+              'hover:bg-purple-700',
+              'disabled:opacity-50 disabled:cursor-not-allowed',
+              'transition-colors'
+            )}
+            aria-label="AI返信"
+            title="AIで返信を生成"
+          >
+            {isGeneratingAI ? (
+              <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+          </button>
           <button
             type="submit"
             disabled={!inputValue.trim() || isSending}
@@ -254,7 +388,7 @@ export function AdminMessageArea({ roomId }: AdminMessageAreaProps) {
         </form>
 
         <div className="mt-2 text-xs text-muted-foreground">
-          <span>Enterで送信 / Shift+Enterで改行</span>
+          <span>Cmd+Enterで送信 / Enterで改行</span>
           {inputValue.length > 0 && (
             <span className="ml-2">
               {inputValue.length}/2000

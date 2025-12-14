@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/utils/get-user'
+import { findMatchingTemplate } from './template-responses'
 
 /**
  * チャットルームを取得または作成
@@ -184,6 +185,47 @@ export async function sendMessage(roomId: string, message: string) {
     }
 
     console.log('[sendMessage] Message sent successfully:', newMessage?.id)
+
+    // ユーザーからのメッセージの場合、テンプレート応答をチェック
+    if (!isAdmin) {
+      console.log('[sendMessage] Checking for template match...')
+      const { match } = await findMatchingTemplate(trimmedMessage)
+
+      if (match) {
+        console.log('[sendMessage] Template match found:', match.id)
+
+        // 管理者ユーザーを取得（自動返信の送信者として使用）
+        const { data: adminUser } = await supabase
+          .from('users')
+          .select('id')
+          .or('role.eq.admin,role.eq.super_admin')
+          .limit(1)
+          .single()
+
+        if (adminUser) {
+          // テンプレート応答を自動送信
+          const { error: autoReplyError } = await supabase
+            .from('chat_messages')
+            .insert({
+              chat_room_id: roomId,
+              sender_id: adminUser.id,
+              message: match.response_text,
+              is_read: false,
+            })
+
+          if (autoReplyError) {
+            console.error('[sendMessage] Failed to send auto-reply:', autoReplyError)
+          } else {
+            console.log('[sendMessage] Auto-reply sent successfully')
+          }
+        } else {
+          console.log('[sendMessage] No admin user found for auto-reply')
+        }
+      } else {
+        console.log('[sendMessage] No template match found')
+      }
+    }
+
     revalidatePath('/admin/chats')
     return { message: newMessage }
   } catch (error) {
@@ -268,5 +310,121 @@ export async function getUnreadCount() {
   } catch (error) {
     console.error('Error in getUnreadCount:', error)
     return { count: 0 }
+  }
+}
+
+/**
+ * メッセージを削除（管理者のみ）
+ */
+export async function deleteMessage(messageId: string) {
+  try {
+    const user = await requireUser()
+    const supabase = await createClient()
+
+    // ユーザー権限確認
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const isAdmin = userData?.role === 'admin' || userData?.role === 'super_admin'
+
+    // メッセージ確認
+    const { data: message } = await supabase
+      .from('chat_messages')
+      .select('sender_id')
+      .eq('id', messageId)
+      .single()
+
+    if (!message) {
+      return { error: 'メッセージが見つかりません' }
+    }
+
+    // 管理者かつ自分が送信したメッセージのみ削除可能
+    if (!isAdmin || message.sender_id !== user.id) {
+      return { error: 'このメッセージを削除する権限がありません' }
+    }
+
+    // メッセージを削除
+    const { error } = await supabase
+      .from('chat_messages')
+      .delete()
+      .eq('id', messageId)
+
+    if (error) {
+      console.error('Failed to delete message:', error)
+      return { error: 'メッセージの削除に失敗しました' }
+    }
+
+    revalidatePath('/admin/chats')
+    return { success: true }
+  } catch (error) {
+    console.error('Error in deleteMessage:', error)
+    return { error: 'メッセージの削除に失敗しました' }
+  }
+}
+
+/**
+ * メッセージを編集（管理者のみ）
+ */
+export async function updateMessage(messageId: string, newMessage: string) {
+  try {
+    const user = await requireUser()
+    const supabase = await createClient()
+
+    // バリデーション
+    const trimmedMessage = newMessage.trim()
+    if (!trimmedMessage) {
+      return { error: 'メッセージを入力してください' }
+    }
+    if (trimmedMessage.length > 2000) {
+      return { error: 'メッセージは2000文字以内で入力してください' }
+    }
+
+    // ユーザー権限確認
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const isAdmin = userData?.role === 'admin' || userData?.role === 'super_admin'
+
+    // メッセージ確認
+    const { data: message } = await supabase
+      .from('chat_messages')
+      .select('sender_id')
+      .eq('id', messageId)
+      .single()
+
+    if (!message) {
+      return { error: 'メッセージが見つかりません' }
+    }
+
+    // 管理者かつ自分が送信したメッセージのみ編集可能
+    if (!isAdmin || message.sender_id !== user.id) {
+      return { error: 'このメッセージを編集する権限がありません' }
+    }
+
+    // メッセージを更新
+    const { error } = await supabase
+      .from('chat_messages')
+      .update({
+        message: trimmedMessage,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', messageId)
+
+    if (error) {
+      console.error('Failed to update message:', error)
+      return { error: 'メッセージの編集に失敗しました' }
+    }
+
+    revalidatePath('/admin/chats')
+    return { success: true }
+  } catch (error) {
+    console.error('Error in updateMessage:', error)
+    return { error: 'メッセージの編集に失敗しました' }
   }
 }
