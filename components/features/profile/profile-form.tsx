@@ -87,23 +87,23 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>プロフィール編集</CardTitle>
+    <Card className="bg-white/90 backdrop-blur-sm border-gray-200/50 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-orange-50 to-pink-50 border-b border-gray-200/50">
+        <CardTitle className="text-gray-900">プロフィール編集</CardTitle>
         <CardDescription>
           あなたの情報を更新してください
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <form action={handleSubmit} className="space-y-6">
           {/* アバター画像 */}
-          <div className="space-y-2">
-            <Label>アバター画像</Label>
+          <div className="space-y-3 p-6 bg-gradient-to-r from-orange-50/50 to-pink-50/50 rounded-xl border border-gray-200/50">
+            <Label className="text-base font-semibold text-gray-900">アバター画像</Label>
             <div className="flex items-center gap-6">
               {/* プレビュー */}
-              <div className="relative">
+              <div className="relative group">
                 {avatarPreview ? (
-                  <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200">
+                  <div className="relative w-28 h-28 rounded-2xl overflow-hidden border-4 border-white shadow-xl group-hover:shadow-2xl transition-all duration-300 group-hover:scale-105">
                     <Image
                       src={avatarPreview}
                       alt="アバター"
@@ -114,15 +114,15 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
                       type="button"
                       onClick={handleRemoveAvatar}
                       disabled={loading}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors disabled:opacity-50"
+                      className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full p-2 hover:from-red-600 hover:to-pink-600 transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl hover:scale-110"
                       aria-label="画像を削除"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
                 ) : (
-                  <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
-                    <Upload className="h-8 w-8 text-gray-400" />
+                  <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center border-4 border-white shadow-lg group-hover:shadow-xl transition-all duration-300">
+                    <Upload className="h-10 w-10 text-gray-400" />
                   </div>
                 )}
               </div>
@@ -139,12 +139,12 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
                 />
                 <label
                   htmlFor="avatar"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-xl shadow-md hover:shadow-lg text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
                 >
-                  <Upload className="h-4 w-4" />
+                  <Upload className="h-5 w-5" />
                   画像を選択
                 </label>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-gray-600 mt-3 ml-1">
                   JPG、PNG、GIF形式、最大5MBまで
                 </p>
               </div>
@@ -192,12 +192,12 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="bio">自己紹介</Label>
+            <Label htmlFor="bio" className="text-sm font-medium text-gray-700">自己紹介</Label>
             <textarea
               id="bio"
               name="bio"
               rows={4}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm ring-offset-background placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 focus-visible:border-orange-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 hover:border-gray-400 shadow-sm focus:shadow-md"
               defaultValue={profile?.bio || ''}
               placeholder="あなたについて教えてください..."
               disabled={loading}
@@ -257,19 +257,41 @@ export function ProfileForm({ user, profile }: ProfileFormProps) {
           </div>
 
           {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
+            <div className="rounded-xl bg-gradient-to-r from-red-50 to-pink-50 border border-red-200/50 p-4 text-sm text-red-700 shadow-md animate-in fade-in-50 duration-200">
+              <div className="flex items-center gap-2">
+                <X className="h-4 w-4 flex-shrink-0" />
+                <span className="font-medium">{error}</span>
+              </div>
             </div>
           )}
 
           {success && (
-            <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
-              プロフィールを更新しました
+            <div className="rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/50 p-4 text-sm text-green-700 shadow-md animate-in fade-in-50 duration-200">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="font-medium">プロフィールを更新しました</span>
+              </div>
             </div>
           )}
 
-          <Button type="submit" disabled={loading}>
-            {loading ? '更新中...' : '更新する'}
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full md:w-auto bg-gradient-to-r from-orange-500 to-pink-500 text-white font-semibold px-8 py-6 rounded-xl shadow-lg hover:shadow-xl hover:from-orange-600 hover:to-pink-600 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                更新中...
+              </span>
+            ) : (
+              '更新する'
+            )}
           </Button>
         </form>
       </CardContent>

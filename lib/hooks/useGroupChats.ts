@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getGroupChatsList } from '@/lib/actions/group-chat'
+import { logger } from '@/lib/utils/logger'
 
 interface GroupChat {
   id: string
@@ -22,6 +23,7 @@ export function useGroupChats() {
   const [groups, setGroups] = useState<GroupChat[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // グループ一覧を取得
   const fetchGroups = useCallback(async () => {
@@ -39,6 +41,16 @@ export function useGroupChats() {
     setIsLoading(false)
   }, [])
 
+  // デバウンス付きのfetchGroups（2秒間新しいイベントがなければ実行）
+  const debouncedFetchGroups = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      fetchGroups()
+    }, 2000)
+  }, [fetchGroups])
+
   // 初回読み込み
   useEffect(() => {
     fetchGroups()
@@ -48,7 +60,7 @@ export function useGroupChats() {
   useEffect(() => {
     const supabase = createClient()
 
-    console.log('[useGroupChats] Setting up Realtime subscription')
+    logger.log('[useGroupChats] Setting up Realtime subscription')
 
     const channel = supabase
       .channel('group-chats-changes')
@@ -60,7 +72,7 @@ export function useGroupChats() {
           table: 'group_chat_messages',
         },
         async (payload) => {
-          console.log('[useGroupChats] New message received:', payload.new)
+          logger.log('[useGroupChats] New message received:', payload.new)
 
           // メッセージが送信されたグループの情報を更新
           const newMessage = payload.new as any
@@ -83,8 +95,8 @@ export function useGroupChats() {
             })
           })
 
-          // 詳細情報を再取得（未読数など）
-          fetchGroups()
+          // 詳細情報を再取得（未読数など）- デバウンス付きで実行
+          debouncedFetchGroups()
         }
       )
       .on(
@@ -95,7 +107,7 @@ export function useGroupChats() {
           table: 'group_chats',
         },
         (payload) => {
-          console.log('[useGroupChats] New group created:', payload.new)
+          logger.log('[useGroupChats] New group created:', payload.new)
           // 新しいグループが作成されたら一覧を再取得
           fetchGroups()
         }
@@ -108,7 +120,7 @@ export function useGroupChats() {
           table: 'group_chat_members',
         },
         (payload) => {
-          console.log('[useGroupChats] Member added:', payload.new)
+          logger.log('[useGroupChats] Member added:', payload.new)
           // メンバーが追加されたら一覧を再取得
           fetchGroups()
         }
@@ -121,20 +133,23 @@ export function useGroupChats() {
           table: 'group_chat_members',
         },
         (payload) => {
-          console.log('[useGroupChats] Member removed:', payload.old)
+          logger.log('[useGroupChats] Member removed:', payload.old)
           // メンバーが削除されたら一覧を再取得
           fetchGroups()
         }
       )
       .subscribe((status) => {
-        console.log('[useGroupChats] Subscription status:', status)
+        logger.log('[useGroupChats] Subscription status:', status)
       })
 
     return () => {
-      console.log('[useGroupChats] Cleaning up Realtime subscription')
+      logger.log('[useGroupChats] Cleaning up Realtime subscription')
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
       supabase.removeChannel(channel)
     }
-  }, [fetchGroups])
+  }, [fetchGroups, debouncedFetchGroups])
 
   return {
     groups,

@@ -99,9 +99,9 @@ export function UserChatInterface({
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+    <div className="flex gap-4 h-full py-6">
       {/* 左側: 統合チャット一覧 */}
-      <div className="lg:col-span-1 h-full">
+      <div className="w-80 flex-shrink-0 h-full">
         <UnifiedChatList
           groups={groups}
           chatRoom={chatRoom}
@@ -113,19 +113,21 @@ export function UserChatInterface({
       </div>
 
       {/* 右側: メッセージエリア */}
-      <div className="lg:col-span-2 h-full">
+      <div className="flex-1 h-full">
         {selectedId && chatType === 'direct' ? (
           <UserDirectChat roomId={selectedId} />
         ) : selectedId && chatType === 'group' ? (
           <UserGroupMessageArea groupId={selectedId} />
         ) : (
-          <div className="bg-white rounded-lg border shadow-sm h-full flex items-center justify-center">
-            <div className="text-center p-8">
-              <div className="text-6xl mb-4">💬</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg h-full flex items-center justify-center">
+            <div className="text-center p-12">
+              <div className="inline-block p-6 bg-gradient-to-br from-orange-100 to-pink-100 rounded-full mb-6">
+                <span className="text-6xl">💬</span>
+              </div>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text text-transparent mb-3">
                 チャットを選択してください
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600 max-w-sm mx-auto">
                 左側のリストからチャットを選んで会話を始めましょう
               </p>
             </div>

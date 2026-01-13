@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { UserManagementTable } from '@/components/features/admin/user-management-table'
+import { Users, UserCheck, Shield } from 'lucide-react'
 
 interface SearchParams {
   search?: string
@@ -78,53 +79,62 @@ export default async function AdminUsersPage({
     .is('deleted_at', null)
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">会員管理</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-8 border border-gray-200/50 shadow-lg">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+          会員管理
+        </h1>
+        <p className="text-gray-600 text-lg">
           会員の管理、検索、編集
         </p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">総会員数</CardTitle>
-            <span className="text-2xl">👥</span>
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base font-bold text-gray-800">総会員数</CardTitle>
+            <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl shadow-md">
+              <Users className="h-6 w-6 text-white" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalUsers || 0}</div>
+            <div className="text-4xl font-bold text-gray-900">{totalUsers || 0}</div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">アクティブ会員</CardTitle>
-            <span className="text-2xl">✅</span>
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base font-bold text-gray-800">アクティブ会員</CardTitle>
+            <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl shadow-md">
+              <UserCheck className="h-6 w-6 text-white" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeUsers || 0}</div>
+            <div className="text-4xl font-bold text-gray-900">{activeUsers || 0}</div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">管理者数</CardTitle>
-            <span className="text-2xl">🛡️</span>
+        <Card className="bg-gradient-to-br from-orange-50 to-pink-50 border-orange-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base font-bold text-gray-800">管理者数</CardTitle>
+            <div className="p-3 bg-gradient-to-br from-orange-500 to-pink-500 rounded-xl shadow-md">
+              <Shield className="h-6 w-6 text-white" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{adminUsers || 0}</div>
+            <div className="text-4xl font-bold text-gray-900">{adminUsers || 0}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* User Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>会員一覧</CardTitle>
+      <Card className="bg-white/90 backdrop-blur-sm border-gray-200/50 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200/50">
+          <CardTitle className="text-gray-900 text-xl">会員一覧</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <UserManagementTable
             users={users || []}
             currentPage={page}

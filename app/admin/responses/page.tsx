@@ -23,10 +23,13 @@ export default async function ResponsesPage() {
   }
 
   return (
-    <div className="p-8 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">返信管理</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-8 border border-gray-200/50 shadow-lg">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+          返信管理
+        </h1>
+        <p className="text-gray-600 text-lg">
           ナレッジベースとテンプレート応答を管理します
         </p>
       </div>

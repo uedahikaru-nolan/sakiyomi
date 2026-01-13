@@ -8,6 +8,7 @@ import {
   markGroupMessagesAsRead,
 } from '@/lib/actions/group-chat'
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import { logger } from '@/lib/utils/logger'
 
 interface GroupChatMessage {
   id: string
@@ -60,7 +61,7 @@ export function useGroupChatMessages(groupChatId: string | null) {
 
     const supabase = createClient()
 
-    console.log('[Realtime] Setting up channel for group:', groupChatId)
+    logger.log('[Realtime] Setting up channel for group:', groupChatId)
 
     // チャンネルを作成
     const channel = supabase
@@ -74,35 +75,47 @@ export function useGroupChatMessages(groupChatId: string | null) {
           filter: `group_chat_id=eq.${groupChatId}`,
         },
         async (payload) => {
-          console.log('[Realtime] New group message received:', payload.new.id)
+          logger.log('[Realtime] New group message received:', payload.new.id)
 
-          // 新しいメッセージを取得して追加
-          const { data: newMessageData, error } = await supabase
-            .from('group_chat_messages')
-            .select(`
-              *,
-              sender:users!sender_id(id, name, avatar_url, role)
-            `)
-            .eq('id', payload.new.id)
-            .single()
+          // 既にリストに存在するかチェック（楽観的更新で追加済みの場合）
+          setMessages((prev) => {
+            const exists = prev.some(msg => msg.id === payload.new.id)
+            if (exists) {
+              logger.log('[Realtime] Message already exists, skipping query')
+              return prev
+            }
 
-          if (error) {
-            console.error('[Realtime] Error fetching message:', error)
-            return
-          }
+            // 存在しない場合のみ、sender情報を取得
+            ;(async () => {
+              const { data: newMessageData, error } = await supabase
+                .from('group_chat_messages')
+                .select(`
+                  *,
+                  sender:users!sender_id(id, name, avatar_url, role)
+                `)
+                .eq('id', payload.new.id)
+                .single()
 
-          if (newMessageData) {
-            console.log('[Realtime] Adding message to list:', newMessageData.id)
-            setMessages((prev) => {
-              // 重複チェック
-              const exists = prev.some(msg => msg.id === newMessageData.id)
-              if (exists) {
-                console.log('[Realtime] Message already exists, skipping')
-                return prev
+              if (error) {
+                logger.error('[Realtime] Error fetching message:', error)
+                return
               }
-              return [...prev, newMessageData as GroupChatMessage]
-            })
-          }
+
+              if (newMessageData) {
+                logger.log('[Realtime] Adding message to list:', newMessageData.id)
+                setMessages((prev) => {
+                  // 再度重複チェック（非同期処理のため）
+                  const exists = prev.some(msg => msg.id === newMessageData.id)
+                  if (exists) {
+                    return prev
+                  }
+                  return [...prev, newMessageData as GroupChatMessage]
+                })
+              }
+            })()
+
+            return prev
+          })
         }
       )
       .on(
@@ -114,7 +127,7 @@ export function useGroupChatMessages(groupChatId: string | null) {
           filter: `group_chat_id=eq.${groupChatId}`,
         },
         (payload) => {
-          console.log('[Realtime] Group message updated:', payload.new.id)
+          logger.log('[Realtime] Group message updated:', payload.new.id)
           // メッセージの更新
           setMessages((prev) =>
             prev.map((msg) =>
@@ -124,13 +137,13 @@ export function useGroupChatMessages(groupChatId: string | null) {
         }
       )
       .subscribe((status) => {
-        console.log('[Realtime] Subscription status:', status)
+        logger.log('[Realtime] Subscription status:', status)
       })
 
     channelRef.current = channel
 
     return () => {
-      console.log('[Realtime] Cleaning up channel')
+      logger.log('[Realtime] Cleaning up channel')
       supabase.removeChannel(channel)
       channelRef.current = null
     }
@@ -139,7 +152,7 @@ export function useGroupChatMessages(groupChatId: string | null) {
   // メッセージ送信
   const sendMessage = async (message: string) => {
     if (!groupChatId) {
-      console.error('No group chat ID provided')
+      logger.error('No group chat ID provided')
       return false
     }
 
@@ -147,13 +160,13 @@ export function useGroupChatMessages(groupChatId: string | null) {
     setError(null)
 
     try {
-      console.log('Sending group message:', { groupChatId, messageLength: message.length })
+      logger.log('Sending group message:', { groupChatId, messageLength: message.length })
       const result = await sendGroupMessageAction(groupChatId, message)
 
-      console.log('Send group message result:', result)
+      logger.log('Send group message result:', result)
 
       if (result.error) {
-        console.error('Group message send error:', result.error)
+        logger.error('Group message send error:', result.error)
         setError(result.error)
         setIsSending(false)
         return false
@@ -161,12 +174,12 @@ export function useGroupChatMessages(groupChatId: string | null) {
 
       // 送信成功したら即座にメッセージをリストに追加（楽観的更新）
       if (result.message) {
-        console.log('Adding group message to list immediately')
+        logger.log('Adding group message to list immediately')
         setMessages((prev) => {
           // 既に同じIDのメッセージがある場合は追加しない（重複防止）
           const exists = prev.some(msg => msg.id === result.message.id)
           if (exists) {
-            console.log('Group message already exists, skipping')
+            logger.log('Group message already exists, skipping')
             return prev
           }
           return [...prev, result.message as GroupChatMessage]
@@ -176,7 +189,7 @@ export function useGroupChatMessages(groupChatId: string | null) {
       setIsSending(false)
       return true
     } catch (err) {
-      console.error('Unexpected error sending group message:', err)
+      logger.error('Unexpected error sending group message:', err)
       setError('メッセージの送信中に予期しないエラーが発生しました')
       setIsSending(false)
       return false

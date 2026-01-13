@@ -12,6 +12,11 @@ const nextConfig = {
       },
     ],
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '100mb', // 動画アップロード用に100MBに設定
+    },
+  },
 }
 
 export default nextConfig

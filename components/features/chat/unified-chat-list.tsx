@@ -74,25 +74,25 @@ export function UnifiedChatList({
   }, [filteredGroups])
 
   return (
-    <div className="bg-white rounded-lg border shadow-sm h-full max-h-[80vh] flex flex-col overflow-hidden">
-      {/* ヘッダー */}
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-gray-900">チャット</h2>
-          <span className="text-sm text-muted-foreground">
+    <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-xl h-full flex flex-col overflow-hidden">
+      {/* Modern Header */}
+      <div className="p-5 border-b border-gray-200/50 bg-gradient-to-r from-orange-50 to-pink-50">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text text-transparent">チャット</h2>
+          <span className="text-xs font-semibold px-2.5 py-1 bg-white/80 text-gray-600 rounded-full border border-gray-200/50">
             {realtimeGroups.length + 1}件
           </span>
         </div>
 
-        {/* 検索バー */}
+        {/* Modern Search Bar */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
             placeholder="チャットを検索..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200/50 rounded-xl bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
           />
         </div>
       </div>
@@ -105,32 +105,32 @@ export function UnifiedChatList({
             <button
               onClick={() => onChatSelect(chatRoom.id, 'direct')}
               className={cn(
-                'w-full p-4 text-left transition-colors hover:bg-orange-50',
-                selectedType === 'direct' && selectedId === chatRoom.id && 'bg-orange-50 border-l-4 border-orange-600'
+                'w-full p-4 text-left transition-all duration-200 hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 group',
+                selectedType === 'direct' && selectedId === chatRoom.id && 'bg-gradient-to-r from-orange-50 to-pink-50 border-l-4 border-orange-500 shadow-sm'
               )}
             >
               <div className="flex items-start gap-3">
                 {/* 運営アイコン */}
-                <div className="h-12 w-12 rounded-full bg-orange-600 flex items-center justify-center text-white flex-shrink-0">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center text-white flex-shrink-0 shadow-md group-hover:shadow-lg transition-shadow">
                   <MessageCircle className="h-6 w-6" />
                 </div>
 
                 {/* チャット情報 */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-semibold text-sm text-gray-900">
+                    <h3 className="font-bold text-sm text-gray-900">
                       運営サポート
                     </h3>
                   </div>
 
-                  <p className="text-xs text-muted-foreground mb-1">
+                  <p className="text-xs text-gray-600 mb-1.5">
                     お気軽にご質問ください
                   </p>
 
                   {/* 未読バッジ */}
                   {directUnreadCount > 0 && (
                     <div className="flex items-center gap-2">
-                      <span className="bg-orange-600 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
+                      <span className="bg-gradient-to-r from-orange-500 to-pink-500 text-white text-xs px-2.5 py-1 rounded-full font-bold shadow-sm animate-pulse">
                         {directUnreadCount > 99 ? '99+' : directUnreadCount}
                       </span>
                     </div>
@@ -146,13 +146,13 @@ export function UnifiedChatList({
               key={group.id}
               onClick={() => onChatSelect(group.id, 'group')}
               className={cn(
-                'w-full p-4 text-left transition-colors hover:bg-orange-50',
-                selectedType === 'group' && selectedId === group.id && 'bg-orange-50 border-l-4 border-orange-600'
+                'w-full p-4 text-left transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 group',
+                selectedType === 'group' && selectedId === group.id && 'bg-gradient-to-r from-blue-50 to-cyan-50 border-l-4 border-blue-500 shadow-sm'
               )}
             >
               <div className="flex items-start gap-3">
                 {/* グループアイコン */}
-                <div className="h-12 w-12 rounded-full flex-shrink-0 overflow-hidden border-2 border-gray-200">
+                <div className="h-12 w-12 rounded-xl flex-shrink-0 overflow-hidden border-2 border-gray-200/50 shadow-sm group-hover:shadow-md transition-shadow">
                   {group.icon_url ? (
                     <Image
                       src={group.icon_url}
@@ -162,7 +162,7 @@ export function UnifiedChatList({
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="h-full w-full bg-blue-600 flex items-center justify-center text-white">
+                    <div className="h-full w-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white">
                       <Users className="h-6 w-6" />
                     </div>
                   )}

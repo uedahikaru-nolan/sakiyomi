@@ -49,24 +49,37 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">プロフィール</h1>
-        <p className="text-muted-foreground">
+      {/* Modern Header with Gradient */}
+      <div className="bg-gradient-to-r from-orange-50 to-pink-50 rounded-2xl p-8 border border-gray-200/50 shadow-lg">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text text-transparent mb-2">
+          プロフィール
+        </h1>
+        <p className="text-gray-600">
           あなたの情報を管理します
         </p>
       </div>
 
       <Tabs defaultValue="view" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="view">プロフィール表示</TabsTrigger>
-          <TabsTrigger value="edit">編集</TabsTrigger>
+        <TabsList className="grid w-full max-w-md grid-cols-2 bg-white/90 backdrop-blur-sm border border-gray-200/50 shadow-md p-1">
+          <TabsTrigger
+            value="view"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 rounded-lg"
+          >
+            プロフィール表示
+          </TabsTrigger>
+          <TabsTrigger
+            value="edit"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 rounded-lg"
+          >
+            編集
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="view" className="mt-6">
+        <TabsContent value="view" className="mt-6 animate-in fade-in-50 duration-300">
           <ProfileDisplay user={displayUser} profile={fullProfile} />
         </TabsContent>
 
-        <TabsContent value="edit" className="mt-6">
+        <TabsContent value="edit" className="mt-6 animate-in fade-in-50 duration-300">
           <ProfileForm user={displayUser} profile={profile} />
         </TabsContent>
       </Tabs>

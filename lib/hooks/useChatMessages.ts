@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getChatMessages, sendMessage as sendMessageAction, markMessagesAsRead } from '@/lib/actions/chat'
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import { logger } from '@/lib/utils/logger'
 
 interface ChatMessage {
   id: string
@@ -57,7 +58,7 @@ export function useChatMessages(roomId: string | null) {
 
     const supabase = createClient()
 
-    console.log('[Realtime] Setting up channel for room:', roomId)
+    logger.log('[Realtime] Setting up channel for room:', roomId)
 
     // チャンネルを作成
     const channel = supabase
@@ -71,35 +72,47 @@ export function useChatMessages(roomId: string | null) {
           filter: `chat_room_id=eq.${roomId}`,
         },
         async (payload) => {
-          console.log('[Realtime] New message received:', payload.new.id)
+          logger.log('[Realtime] New message received:', payload.new.id)
 
-          // 新しいメッセージを取得して追加
-          const { data: newMessageData, error } = await supabase
-            .from('chat_messages')
-            .select(`
-              *,
-              sender:users!sender_id(id, name, avatar_url, role)
-            `)
-            .eq('id', payload.new.id)
-            .single()
+          // 既にリストに存在するかチェック（楽観的更新で追加済みの場合）
+          setMessages((prev) => {
+            const exists = prev.some(msg => msg.id === payload.new.id)
+            if (exists) {
+              logger.log('[Realtime] Message already exists, skipping query')
+              return prev
+            }
 
-          if (error) {
-            console.error('[Realtime] Error fetching message:', error)
-            return
-          }
+            // 存在しない場合のみ、sender情報を取得
+            ;(async () => {
+              const { data: newMessageData, error } = await supabase
+                .from('chat_messages')
+                .select(`
+                  *,
+                  sender:users!sender_id(id, name, avatar_url, role)
+                `)
+                .eq('id', payload.new.id)
+                .single()
 
-          if (newMessageData) {
-            console.log('[Realtime] Adding message to list:', newMessageData.id)
-            setMessages((prev) => {
-              // 重複チェック
-              const exists = prev.some(msg => msg.id === newMessageData.id)
-              if (exists) {
-                console.log('[Realtime] Message already exists, skipping')
-                return prev
+              if (error) {
+                logger.error('[Realtime] Error fetching message:', error)
+                return
               }
-              return [...prev, newMessageData as ChatMessage]
-            })
-          }
+
+              if (newMessageData) {
+                logger.log('[Realtime] Adding message to list:', newMessageData.id)
+                setMessages((prev) => {
+                  // 再度重複チェック（非同期処理のため）
+                  const exists = prev.some(msg => msg.id === newMessageData.id)
+                  if (exists) {
+                    return prev
+                  }
+                  return [...prev, newMessageData as ChatMessage]
+                })
+              }
+            })()
+
+            return prev
+          })
         }
       )
       .on(
@@ -111,7 +124,7 @@ export function useChatMessages(roomId: string | null) {
           filter: `chat_room_id=eq.${roomId}`,
         },
         (payload) => {
-          console.log('[Realtime] Message updated:', payload.new.id)
+          logger.log('[Realtime] Message updated:', payload.new.id)
           // メッセージの更新（既読など）
           setMessages((prev) =>
             prev.map((msg) =>
@@ -121,13 +134,13 @@ export function useChatMessages(roomId: string | null) {
         }
       )
       .subscribe((status) => {
-        console.log('[Realtime] Subscription status:', status)
+        logger.log('[Realtime] Subscription status:', status)
       })
 
     channelRef.current = channel
 
     return () => {
-      console.log('[Realtime] Cleaning up channel')
+      logger.log('[Realtime] Cleaning up channel')
       supabase.removeChannel(channel)
       channelRef.current = null
     }
@@ -136,7 +149,7 @@ export function useChatMessages(roomId: string | null) {
   // メッセージ送信
   const sendMessage = async (message: string) => {
     if (!roomId) {
-      console.error('No room ID provided')
+      logger.error('No room ID provided')
       return false
     }
 
@@ -144,13 +157,13 @@ export function useChatMessages(roomId: string | null) {
     setError(null)
 
     try {
-      console.log('Sending message:', { roomId, messageLength: message.length })
+      logger.log('Sending message:', { roomId, messageLength: message.length })
       const result = await sendMessageAction(roomId, message)
 
-      console.log('Send message result:', result)
+      logger.log('Send message result:', result)
 
       if (result.error) {
-        console.error('Message send error:', result.error)
+        logger.error('Message send error:', result.error)
         setError(result.error)
         setIsSending(false)
         return false
@@ -158,12 +171,12 @@ export function useChatMessages(roomId: string | null) {
 
       // 送信成功したら即座にメッセージをリストに追加（楽観的更新）
       if (result.message) {
-        console.log('Adding message to list immediately')
+        logger.log('Adding message to list immediately')
         setMessages((prev) => {
           // 既に同じIDのメッセージがある場合は追加しない（重複防止）
           const exists = prev.some(msg => msg.id === result.message.id)
           if (exists) {
-            console.log('Message already exists, skipping')
+            logger.log('Message already exists, skipping')
             return prev
           }
           return [...prev, result.message as ChatMessage]
@@ -173,7 +186,7 @@ export function useChatMessages(roomId: string | null) {
       setIsSending(false)
       return true
     } catch (err) {
-      console.error('Unexpected error sending message:', err)
+      logger.error('Unexpected error sending message:', err)
       setError('メッセージの送信中に予期しないエラーが発生しました')
       setIsSending(false)
       return false
